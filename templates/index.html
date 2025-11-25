@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Visual Label Reader</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        /* --- General & Typography --- */
+        body {
+            font-family: 'Poppins', sans-serif; /* Modern, clean font */
+            margin: 0;
+            background-color: #f4f7f9; /* Lighter, subtle background */
+            color: #495057;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 50px 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 20px; /* Rounded corners */
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1); /* Deeper shadow */
+            transition: all 0.3s ease;
+        }
+        h1 {
+            color: #17a2b8; /* A new primary color: teal/cyan */
+            text-align: center;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        h1 + p {
+            text-align: center;
+            color: #adb5bd;
+            margin-bottom: 30px;
+        }
+
+        /* --- Tabs and Inputs --- */
+        .tab-menu {
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background-color: transparent;
+            border: none;
+            padding: 10px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            color: #17a2b8;
+            border-bottom-color: #17a2b8;
+        }
+
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .camera-controls, .file-upload-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #ced4da; /* Dashed border for file upload */
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            text-align: center;
+        }
+        /* Hide the default file input text but keep functionality */
+        input[type="file"]::-webkit-file-upload-button {
+            visibility: hidden;
+        }
+        input[type="file"]::before {
+            content: 'Select image file (e.g., JPEG, PNG)';
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            outline: none;
+            white-space: nowrap;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        input[type="file"]:hover::before {
+            background-color: #0056b3;
+        }
+
+
+        /* --- Buttons --- */
+        button {
+            padding: 12px 25px;
+            background-color: #28a745; 
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.1s;
+        }
+        button:hover {
+            background-color: #1e7e34;
+            transform: translateY(-2px);
+        }
+        #start-camera-button { background-color: #17a2b8; }
+        #start-camera-button:hover { background-color: #138496; }
+        #take-snapshot-button { background-color: #007bff; }
+        #take-snapshot-button:hover { background-color: #0056b3; }
+        #retake-button { background-color: #ffc107; color: #343a40; }
+        #retake-button:hover { background-color: #e0a800; }
+        #submit-button { margin-top: 25px; width: 100%; padding: 15px; background-color: #007bff; }
+        #submit-button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #adb5bd !important; cursor: not-allowed; }
+
+
+        /* --- Preview & Camera --- */
+        #image-preview-container {
+            text-align: center;
+            margin-bottom: 25px;
+            min-height: 200px; /* Consistent height */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+        }
+        #image-preview, #camera-stream {
+            max-width: 100%;
+            max-height: 400px;
+            border: 4px solid #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            object-fit: contain; /* Ensure image fits well */
+        }
+        #camera-stream {
+            display: none;
+        }
+        #camera-canvas { display: none; }
+
+
+        /* --- Flash Messages --- */
+        .flash {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            animation: fadeIn 0.5s;
+        }
+        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.message { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- Spinner Styling --- */
+        #loading-spinner {
+            display: none;
+            border: 6px solid #e9ecef;
+            border-top: 6px solid #17a2b8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1.2s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Table Styling --- */
+        .result-box {
+            margin-top: 30px;
+            overflow-x: auto; 
+        }
+        .result-box h2 {
+            color: #17a2b8;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #17a2b8;
+            padding-bottom: 5px;
+            font-weight: 600;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            overflow: hidden; /* For rounded corners */
+            min-width: 600px;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            font-size: 14px;
+            border: none; /* Removed individual cell borders */
+            border-bottom: 1px solid #e9ecef;
+        }
+        th {
+            background-color: #007bff; /* Use blue for headers */
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa; 
+        }
+        tr:hover {
+            background-color: #e9f2ff; 
+        }
+        
+        /* --- QR Code Styling (NEW INNOVATION) --- */
+        .qr-container {
+            display: flex;
+            align-items: center; /* Align text and QR code horizontally */
+            gap: 10px;
+        }
+        .qr-code-placeholder {
+            min-width: 35px; /* Ensure space for QR */
+            min-height: 35px;
+            display: none; /* Hidden by default until QR is generated */
+        }
+        .qr-code-placeholder canvas {
+            max-width: 35px !important; /* Smaller, subtler QR */
+            height: auto !important;
+            border: 1px solid #ddd;
+            padding: 1px;
+            border-radius: 4px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Visual Label Reader</h1>
+        <p>Analyze labels and extract structured data from images or camera snapshots.</p>
+
+        <div id="status-message" class="flash" style="display:none;"></div>
+
+        <div id="image-preview-container">
+            <img id="image-preview" src="#" alt="Image Preview" style="display: none;">
+            <video id="camera-stream" autoplay playsinline style="display: none;"></video>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+            <span id="preview-placeholder">Image or Camera Snapshot Preview Area</span>
+        </div>
+
+        <div class="tab-menu">
+            <button class="tab-button active" data-tab="camera-tab" id="camera-tab-button">📸 Capture</button>
+            <button class="tab-button" data-tab="file-tab" id="file-tab-button">📁 Upload</button>
+        </div>
+
+        <div id="camera-tab" class="tab-content">
+            <div class="camera-controls">
+                <button type="button" id="start-camera-button" title="Start your device's camera">Start Camera</button>
+                <button type="button" id="take-snapshot-button" style="display:none; background-color: #007bff;" title="Capture current frame">Take Snapshot</button>
+                <button type="button" id="retake-button" style="display:none; background-color: #ffc107;" title="Discard and restart camera">Retake Image</button>
+            </div>
+        </div>
+
+        <div id="file-tab" class="tab-content" style="display:none;">
+            <input type="file" name="image" id="image-file-input" accept="image/*">
+        </div>
+
+
+        <form method="POST" enctype="multipart/form-data" id="ocr-form">
+            <button type="submit" id="submit-button" disabled>Submit Image for Analysis</button>
+        </form>
+
+        <div id="loading-spinner"></div>
+        
+        <div id="result-box-container">
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('ocr-form');
+        const fileInput = document.getElementById('image-file-input');
+        const imagePreview = document.getElementById('image-preview');
+        const previewPlaceholder = document.getElementById('preview-placeholder');
+        const resultContainer = document.getElementById('result-box-container');
+        const spinner = document.getElementById('loading-spinner');
+        const submitButton = document.getElementById('submit-button');
+        const statusMessage = document.getElementById('status-message');
+
+        // UI & CAMERA ELEMENTS
+        const cameraTabButton = document.getElementById('camera-tab-button');
+        const fileTabButton = document.getElementById('file-tab-button');
+        const cameraTabContent = document.getElementById('camera-tab');
+        const fileTabContent = document.getElementById('file-tab');
+
+        const startCameraButton = document.getElementById('start-camera-button');
+        const takeSnapshotButton = document.getElementById('take-snapshot-button');
+        const retakeButton = document.getElementById('retake-button');
+        const video = document.getElementById('camera-stream');
+        const canvas = document.getElementById('camera-canvas');
+        let mediaStream = null; 
+        
+        let capturedFileBlob = null; // Stores the captured camera file (Blob)
+        let imageIsReady = false; 
+
+        // Helper function to reset the UI state
+        function resetUI(clearFileInput = true) {
+            resultContainer.innerHTML = '';
+            spinner.style.display = 'none';
+            statusMessage.style.display = 'none';
+
+            // Clear visual preview
+            imagePreview.style.display = 'none';
+            video.style.display = 'none';
+            previewPlaceholder.style.display = 'block';
+
+            // Reset image readiness
+            imageIsReady = false;
+            submitButton.disabled = true;
+
+            // Clear stored camera data
+            capturedFileBlob = null;
+
+            if (clearFileInput) {
+                 // Reset file input only if clearing everything
+                 fileInput.files = new DataTransfer().files; 
+                 fileInput.value = '';
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // TAB SWITCHING LOGIC
+        // ----------------------------------------------------------------------
+        function switchTab(targetTab) {
+            const tabs = [cameraTabContent, fileTabContent];
+            const buttons = [cameraTabButton, fileTabButton];
+
+            tabs.forEach(tab => tab.style.display = 'none');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            if (targetTab === 'camera-tab') {
+                cameraTabContent.style.display = 'block';
+                cameraTabButton.classList.add('active');
+                stopCamera();
+                startCameraButton.style.display = 'block';
+                takeSnapshotButton.style.display = 'none';
+                retakeButton.style.display = 'none';
+            } else if (targetTab === 'file-tab') {
+                fileTabContent.style.display = 'block';
+                fileTabButton.classList.add('active');
+                stopCamera();
+                // If a file is already selected, re-enable the submit button
+                if (fileInput.files.length > 0) {
+                     imageIsReady = true;
+                     submitButton.disabled = false;
+                }
+            }
+
+            // Always reset visual state when switching tabs
+            resetUI(false); 
+        }
+
+        cameraTabButton.addEventListener('click', () => switchTab('camera-tab'));
+        fileTabButton.addEventListener('click', () => switchTab('file-tab'));
+
+
+        // ----------------------------------------------------------------------
+        // CAMERA FUNCTIONS
+        // ----------------------------------------------------------------------
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            video.style.display = 'none';
+            video.srcObject = null;
+        }
+
+        async function startCamera() {
+            resetUI();
+            capturedFileBlob = null; // Ensure previous snapshot is cleared
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                statusMessage.textContent = '❌ Error: Camera access is not supported by this browser.';
+                statusMessage.className = 'flash error';
+                statusMessage.style.display = 'block';
+                return;
+            }
+
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                
+                video.srcObject = mediaStream;
+                video.style.display = 'block'; 
+                video.play();
+                previewPlaceholder.style.display = 'none';
+
+                startCameraButton.style.display = 'none';
+                takeSnapshotButton.style.display = 'block';
+                retakeButton.style.display = 'none';
+
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                statusMessage.textContent = `❌ Error: Could not access camera. Check device or browser permissions.`;
+                statusMessage.className = 'flash error';
+                statusMessage.style.display = 'block';
+                
+                startCameraButton.style.display = 'block';
+                takeSnapshotButton.style.display = 'none';
+            }
+        }
+
+        function takeSnapshot() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            stopCamera(); 
+
+            canvas.toBlob((blob) => {
+                
+                const imgUrl = URL.createObjectURL(blob);
+                imagePreview.src = imgUrl;
+                imagePreview.style.display = 'block';
+                video.style.display = 'none'; 
+                
+                takeSnapshotButton.style.display = 'none';
+                retakeButton.style.display = 'block';
+                startCameraButton.style.display = 'none';
+                submitButton.disabled = false; 
+                imageIsReady = true;
+
+                // CRITICAL FIX: Store the File object directly
+                capturedFileBlob = new File([blob], "snapshot.jpeg", { type: blob.type });
+
+                // Clear the manual input to prioritize the snapped image
+                fileInput.files = new DataTransfer().files; 
+
+            }, 'image/jpeg');
+        }
+
+        function retakeImage() {
+            resetUI(false); 
+            startCamera(); 
+        }
+
+        // ----------------------------------------------------------------------
+        // RESULT RENDERING FUNCTIONS
+        // ----------------------------------------------------------------------
+
+        function createTableHTML(tableData) {
+            if (!tableData || tableData.length === 0) {
+                return '<p class="flash error">The OCR successfully ran, but no table data was found in the response.</p>';
+            }
+
+            let html = '<div class="result-box"><h2>Extracted Data Table</h2><table><thead><tr><th>Data Point</th><th>Extracted Value</th></tr></thead><tbody>';
+            
+            if (tableData.length > 0 && tableData[0].length >= 2) {
+                const hasHeaders = tableData[0].length >= 2 && !tableData[0].some(cell => cell.includes('$') || cell.includes('€') || cell.includes('%') || !isNaN(cell));
+                const dataRows = hasHeaders ? tableData.slice(1) : tableData;
+
+                dataRows.forEach((row, rowIndex) => {
+                    const key = row[0].trim() || `Row ${rowIndex + 1} (Key)`;
+                    const value = row[1] ? row[1].trim() : '';
+
+                    html += `<tr><td><span>${key}</span></td><td><div class="qr-container"><span>${value}</span>`;
+                    if (value) {
+                        html += `<div class="qr-code-placeholder" data-content="${value}"></div>`;
+                    }
+                    html += `</div></td></tr>`;
+                });
+            } else {
+                 tableData.forEach((row, rowIndex) => {
+                    const value = row[0].trim();
+                    html += `<tr><td>Row ${rowIndex + 1}</td><td><div class="qr-container"><span>${value}</span>`;
+                    if (value) {
+                         html += `<div class="qr-code-placeholder" data-content="${value}"></div>`;
+                    }
+                    html += `</div></td></tr>`;
+                 });
+            }
+
+
+            html += '</tbody></table></div>';
+            return html;
+        }
+        
+        function generateQRCodes() {
+            const qrPlaceholders = document.querySelectorAll('.qr-code-placeholder');
+
+            qrPlaceholders.forEach(placeholder => {
+                const data = placeholder.getAttribute('data-content');
+                
+                if (data && data.trim() !== '') {
+                    placeholder.style.display = 'block'; 
+                    new QRCode(placeholder, {
+                        text: data,
+                        width: 35, 
+                        height: 35,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.L
+                    });
+                }
+            });
+        }
+
+
+        // Handles file selection for preview and clearing previous data
+        fileInput.addEventListener('change', function() {
+            stopCamera();
+            resetUI(false); 
+            capturedFileBlob = null; // CRITICAL: Clear any existing snapshot when manual file is chosen
+
+            const file = this.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    previewPlaceholder.style.display = 'none';
+                    imageIsReady = true;
+                    submitButton.disabled = false;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = 'none';
+                previewPlaceholder.style.display = 'block';
+                imageIsReady = false;
+                submitButton.disabled = true;
+            }
+        });
+
+
+        startCameraButton.addEventListener('click', startCamera);
+        takeSnapshotButton.addEventListener('click', takeSnapshot);
+        retakeButton.addEventListener('click', retakeImage);
+
+
+        // Handles the form submission using AJAX
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+
+            const formData = new FormData();
+            let imageFile = null;
+
+            // 1. Determine which image source to use
+            if (capturedFileBlob) {
+                // Priority 1: Use the captured camera file (Blob/File)
+                imageFile = capturedFileBlob;
+            } else if (fileInput.files.length > 0) {
+                // Priority 2: Use the manually uploaded file
+                imageFile = fileInput.files[0];
+            }
+
+            // 2. Validation check
+            if (!imageFile) {
+                statusMessage.textContent = '❌ Please select or capture an image before submitting.';
+                statusMessage.className = 'flash error';
+                statusMessage.style.display = 'block';
+                submitButton.disabled = false;
+                return;
+            }
+
+            // 3. CRITICAL STEP: Append the file to the FormData object
+            // Use the name "image" expected by the Flask backend
+            formData.append('image', imageFile, imageFile.name);
+            
+            // Clear previous results and errors again
+            resetUI(false); 
+            statusMessage.className = 'flash';
+
+            // Show loading spinner and disable button
+            spinner.style.display = 'block';
+            submitButton.disabled = true;
+            statusMessage.textContent = 'Processing image... please wait.';
+            statusMessage.className = 'flash message';
+            statusMessage.style.display = 'block';
+            
+            try {
+                // Send data using the manually created FormData object
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData 
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server Error (Status ${response.status}): ${errorText.substring(0, 100)}...`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const tableData = data.ocr_table_data; 
+                
+                // Display the result
+                const tableHTML = createTableHTML(tableData);
+                resultContainer.innerHTML = tableHTML;
+                
+                generateQRCodes();
+
+                statusMessage.textContent = '✅ Analysis completed successfully!';
+                statusMessage.className = 'flash message';
+                
+            } catch (error) {
+                console.error("AJAX Error:", error);
+                statusMessage.textContent = `❌ Error: ${error.message || "Could not connect to the processing service."}`;
+                statusMessage.className = 'flash error';
+            } finally {
+                spinner.style.display = 'none';
+                submitButton.disabled = false; 
+                imageIsReady = true; 
+            }
+        });
+        
+        // Initial setup
+        switchTab('camera-tab'); 
+    </script>
+</body>
+</html>

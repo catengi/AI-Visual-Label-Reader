@@ -1,0 +1,122 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/ocr",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        0
+      ],
+      "id": "8305ab5d-b4c0-47cf-9372-3bd17edc007e",
+      "name": "Webhook1",
+      "webhookId": "3e9d6870-1cb5-4543-bf1c-abba5192d3ce"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Get All Data from this image using OCR. show only results data (title:data) and dont use \"\\n\". use comma to separate data. Connect the data in same area with : (topic:data)",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -448,
+        0
+      ],
+      "id": "5a7f4b1a-9fff-4444-a1c1-69ffe18a8731",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "gemma3:4b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        208
+      ],
+      "id": "b05d671a-58b5-4101-8370-70a3497df0e1",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "ADtILUeaVdJOMagB",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ocr_result\": \"{{$json.output}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "234855fe-16d4-44ef-8e60-b43ed20215b2",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Bangkok",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "zn9I9cvV5yd5DktE"
+  },
+  "versionId": "c84e7f63-5927-4e25-9f14-0e70f14d0bbb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9065bd7c1610fc4cd309e4ffebc094e77526f947e24435e8311e16d55b3d0665"
+  },
+  "id": "zn9I9cvV5yd5DktE",
+  "tags": []
+}
