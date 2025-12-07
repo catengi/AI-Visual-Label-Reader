@@ -11,26 +11,26 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -960,
-        0
+        -304,
+        208
       ],
-      "id": "8305ab5d-b4c0-47cf-9372-3bd17edc007e",
+      "id": "82b20106-9be9-410a-b1e5-a3b73e5f81dc",
       "name": "Webhook1",
       "webhookId": "3e9d6870-1cb5-4543-bf1c-abba5192d3ce"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Get All Data from this image using OCR. show only results data (title:data) and dont use \"\\n\". use comma to separate data. Connect the data in same area with : (topic:data)",
+        "text": "=**STRICT MANDATE: PRODUCT LABEL IMAGE ANALYSIS (Image-Only Input)**\n\n**Goal:** Achieve **TOTAL DATA CAPTURE** from the provided product label image. Every single alphanumeric sequence, code, number, date, and labeled text segment **must** be extracted. The model is forbidden from using discretion to ignore any visible data. The analysis is purely based on the visual layout of the image, independent of any external data structure.\n\n**EXTRACTION & KEYING RULES (Non-Negotiable):**\n1.  **Extract All Alphanumeric Data:** Capture every sequence of letters and numbers visible.\n2.  **Define Keys Broadly:** If the data has a clear title (e.g., 'P/N', 'QTY', 'LOT'), use that title as the Key.\n3.  **Handle Unlabeled Data:** If a number or code has no preceding title, use a descriptive, location-based tag (e.g., 'TOP_ROW_CODE', 'CENTER_BARCODE_VALUE', 'UNLABELED_NUMBER_2').\n4.  **Preserve Original Text:** Do not clean, reformat, or standardize the extracted **Value**.\n\n**NON-NEGOTIABLE OUTPUT FORMAT:**\nThe output **MUST** be a single, continuous string containing only key-value pairs.\n\n**Format Pattern:** `[Key]:[Value]` pairs separated only by a comma and a single space (`, `).\n\n**Example of Expected Output (Highly Detailed):**\nSUPPLIER_PART_NUMBER:1022934-001, QTY:450, DATE_CODE:1234, BATCH_ID:L49A, UNLABELED_TOP_LEFT:81V52, SCAN_CODE:2D093202\n\n**FINAL INSTRUCTION:** Return ONLY the resulting data string. Do not include any introductory text, explanation, or conversational filler.",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -448,
-        0
+        224,
+        208
       ],
-      "id": "5a7f4b1a-9fff-4444-a1c1-69ffe18a8731",
+      "id": "d76e593e-60db-4cef-9132-bba0320a5a7e",
       "name": "AI Agent"
     },
     {
@@ -41,14 +41,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        -528,
-        208
+        144,
+        416
       ],
-      "id": "b05d671a-58b5-4101-8370-70a3497df0e1",
+      "id": "4eb7aef3-5f7d-4f36-a825-d403dd10c821",
       "name": "Ollama Chat Model",
       "credentials": {
         "ollamaApi": {
-          "id": "ADtILUeaVdJOMagB",
+          "id": "e4oQPjgJDFcPksx8",
           "name": "Ollama account"
         }
       }
@@ -62,10 +62,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -16,
-        0
+        656,
+        208
       ],
-      "id": "234855fe-16d4-44ef-8e60-b43ed20215b2",
+      "id": "eddb617d-70e8-4d62-b8c2-7bd04d76d6a7",
       "name": "Respond to Webhook"
     }
   ],
@@ -105,18 +105,15 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1",
-    "timezone": "Asia/Bangkok",
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": "zn9I9cvV5yd5DktE"
+    "executionOrder": "v1"
   },
-  "versionId": "c84e7f63-5927-4e25-9f14-0e70f14d0bbb",
+  "versionId": "20c53dbf-1c68-40c3-b805-a8ba39ead430",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "9065bd7c1610fc4cd309e4ffebc094e77526f947e24435e8311e16d55b3d0665"
+    "instanceId": "07a9e1d4a894b1e5ecf2770d4b51bfd85ebe21525f14a2b29c4f63099bef5c55"
   },
-  "id": "zn9I9cvV5yd5DktE",
+  "id": "p3QfiwUrgeV9JJFx",
   "tags": []
 }
